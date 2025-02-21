@@ -221,13 +221,27 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
-run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter_thres=0.5,min_reads=0,min_wells=2,well_pos=3,wellset1=get_well_subset(1:16,1:24),compute=T,backend="numpy"){ #this is with cpu backend
+run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",
+                                            well_filter_thres=0.5,
+                                            min_reads=0,
+                                            min_wells=2,
+                                            well_pos=3,  # the position of the the well ID in the filename
+                                            wellset1=get_well_subset(1:16,1:24),
+                                            compute=T,
+                                            backend="numpy"){ #this is with cpu backend
   print("start")
   print(Sys.time())
-  mlist<-lapply(list.files(path = folder_path,full.names = T),fread)
-  names(mlist)<-gsub(".","_",list.files(path = folder_path,full.names = F),fixed=T)
+  # get a list of clone files and read them in
+  clone_files <- list.files(path = folder_path,
+                          full.names = T,
+                          pattern = 'clones')
+  mlist<-lapply(clone_files, fread)
+  
+  # replace dots in the names with underscores and separate into alpha and beta
+  names(mlist)<-gsub(".","_",basename(clone_files),fixed=T)
   mlista<-geta(mlist)
   mlistb<-getb(mlist)
+
   print("clonesets loaded")
   print(Sys.time())
   print(names(mlista))
