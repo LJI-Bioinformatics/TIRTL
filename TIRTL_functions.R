@@ -228,13 +228,15 @@ run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",
                                             well_pos=3,  # the position of the the well ID in the filename
                                             wellset1=get_well_subset(1:16,1:24),
                                             compute=T,
-                                            backend="numpy"){ #this is with cpu backend
+                                            backend="numpy", #this is with cpu backend
+                                            file_pattern=NULL){  # the pattern to match the file names, if needed
   print("start")
   print(Sys.time())
-  # get a list of clone files and read them in
+  # get a list of clone files and read them in - if we need to filter the files in the
+  # directory by 'pattern', we can do that here
   clone_files <- list.files(path = folder_path,
                           full.names = T,
-                          pattern = 'clones')
+                          pattern = file_pattern)
   mlist<-lapply(clone_files, fread)
   
   # replace dots in the names with underscores and separate into alpha and beta
