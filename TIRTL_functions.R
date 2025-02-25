@@ -221,7 +221,8 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
-run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",
+run_single_point_analysis_sub_gpu<-function(folder_path,
+                                            prefix="tmp",
                                             well_filter_thres=0.5,
                                             min_reads=0,
                                             min_wells=2,
