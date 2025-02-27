@@ -14,12 +14,15 @@ def madhyper_process(prefix):
     results = []
     chunk_size =500  # Define your chunk size
     n_wells = bigmas.shape[1]  # Assuming n_wells is the number of columns in bigmas
-    print('total number of chunks', bigmas.shape[0]//chunk_size)
-    total_chunks = bigmas.shape[0] // chunk_size
+    
+    # Determine the total number of chunks, with a minimum of 1
+    total_chunks = max(bigmas.shape[0] // chunk_size, 1)
+    print('total number of chunks',total_chunks)
     b_total = mx.sum(bigmbs > 0, axis=1,keepdims=True)
     bigmbs=(bigmbs > 0).T.astype(mx.float32)
     print("start time for MAD-HYPE:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     for ch in range(0, bigmas.shape[0], chunk_size):
+        print(f'Working on chunk {ch}')
         percent_complete = int((ch // chunk_size + 1) / total_chunks * 100)
         # Print progress only on 5%, 10%, etc.
         if percent_complete % 10 == 0 and percent_complete > 0:
@@ -82,8 +85,9 @@ def correlation_process(prefix, min_wells=2):
     
     results = []
     chunk_size = 500
-    print('total number of chunks', bigmas.shape[0]//chunk_size)
-    total_chunks = bigmas.shape[0] // chunk_size
+    # Determine the total number of chunks, with a minimum of 1
+    total_chunks = max(bigmas.shape[0] // chunk_size, 1)
+    print('total number of chunks', total_chunks)
     
     # Pre-process bigmbs
     bigmb_w1_scaled = bigmbs - mx.mean(bigmbs, axis=1, keepdims=True)
