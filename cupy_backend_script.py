@@ -3,12 +3,13 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import sys
+import os
 
-def madhyper_process(prefix):
+def madhyper_process(prefix, outdir):
     print("start load:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    bigmas = mx.array(np.loadtxt(prefix+'_bigmas.tsv', delimiter='\t', dtype=np.float32))
-    bigmbs = mx.array(np.loadtxt(prefix+'_bigmbs.tsv', delimiter='\t', dtype=np.float32))
-    mdh = mx.array(np.loadtxt(prefix+'_mdh.tsv', delimiter='\t', dtype=np.int32))
+    bigmas = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmas.tsv'), delimiter='\t', dtype=np.float32))
+    bigmbs = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmbs.tsv'), delimiter='\t', dtype=np.float32))
+    mdh = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_mdh.tsv'), delimiter='\t', dtype=np.int32))
     rowinds_bigmas=mx.arange(bigmas.shape[0])
     rowinds_bigmbs=mx.arange(bigmbs.shape[0])
     results = []
@@ -58,13 +59,13 @@ def madhyper_process(prefix):
 
 #make pandas dataframe from each element of results and concatenate them
     results_df = pd.concat([pd.DataFrame(result) for result in results])
-    results_df.to_csv(prefix+'_madhyperesults.csv', index=False)
+    results_df.to_csv(os.path.join(outdir, prefix+'_madhyperesults.csv'), index=False)
     print(f"Number of pairs from MAD-HYPE: {results_df.shape[0]}")
 
-def correlation_process(prefix,min_wells=2):
+def correlation_process(prefix,outdir,min_wells=2):
     print("start load for T-Shell:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    bigmas = mx.array(np.loadtxt(prefix+'_bigmas.tsv', delimiter='\t', dtype=np.float32))
-    bigmbs = mx.array(np.loadtxt(prefix+'_bigmbs.tsv', delimiter='\t', dtype=np.float32))
+    bigmas = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmas.tsv'), delimiter='\t', dtype=np.float32))
+    bigmbs = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmbs.tsv'), delimiter='\t', dtype=np.float32))
     #mdh = mx.array(np.loadtxt(prefix+'_mdh.tsv', delimiter='\t', dtype=np.int32))
     rowinds_bigmas=mx.arange(bigmas.shape[0])
     rowinds_bigmbs=mx.arange(bigmbs.shape[0])
@@ -136,13 +137,14 @@ def correlation_process(prefix,min_wells=2):
 
 #make pandas dataframe from each element of results and concatenate them
     results_df = pd.concat([pd.DataFrame(result) for result in results])
-    results_df.to_csv(prefix+'_corresults.csv', index=False)
+    results_df.to_csv(os.path.join(outdir, prefix+'_corresults.csv'), index=False)
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python script.py <prefix>")
+    if len(sys.argv) != 3:
+        print("Usage: python script.py <prefix> <outdir>")
         sys.exit(1)
         
-    prefix = sys.argv[1]    
-    madhyper_process(prefix)
-    correlation_process(prefix)
+    prefix = sys.argv[1]
+    outdir = sys.argv[2]
+    madhyper_process(prefix, outdir)
+    correlation_process(prefix, outdir)

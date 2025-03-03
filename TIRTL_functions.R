@@ -74,7 +74,7 @@ concordance<-function(tirtlseq1,tirtlseq2)
   table(tirtlseq1[beta_nuc%in%tirtlseq2$beta_nuc,alpha_beta,]%in%tirtlseq2$alpha_beta)
 }
 
-write_for_gpu<-function(mlista,mlistb,n_cells=3000,alpha=2,min_reads=0,min_wells=2,prefix="")#writes out bigmas,bigmbs and mdh files. 
+write_for_gpu<-function(mlista,mlistb,n_cells=3000,alpha=2,min_reads=0,min_wells=2,prefix="", outdir=getwd())#writes out bigmas,bigmbs and mdh files. 
 {
   print(Sys.time())
   print("start")
@@ -92,21 +92,21 @@ write_for_gpu<-function(mlista,mlistb,n_cells=3000,alpha=2,min_reads=0,min_wells
   print("big merge done")
   print("bigmbs")
   print(dim(bigmbs))
-  write(rownames(bigmas),file=paste0(prefix,"bigmas_names.tsv"))
-  write(rownames(bigmbs),file=paste0(prefix,"bigmbs_names.tsv"))
-  write_dat(as.matrix(bigmas),fname = paste0(prefix,"bigmas.tsv"))
-  write_dat(as.matrix(bigmbs),fname = paste0(prefix,"bigmbs.tsv"))
+  write(rownames(bigmas),file=file.path(outdir, paste0(prefix,"bigmas_names.tsv")))
+  write(rownames(bigmbs),file=file.path(outdir, paste0(prefix,"bigmbs_names.tsv")))
+  write_dat(as.matrix(bigmas),fname = file.path(outdir, paste0(prefix,"bigmas.tsv")))
+  write_dat(as.matrix(bigmbs),fname = file.path(outdir, paste0(prefix,"bigmbs.tsv")))
   print(Sys.time())
   n_wells=ncol(bigmas)
   mdh<-madhyper_surface(n_wells = n_wells,cells = n_cells,alpha=alpha,prior = 1/(as.numeric(nrow(bigmas))*(as.numeric(nrow(bigmbs))))**0.5)
-  write_dat(mdh,fname = paste0(prefix,"mdh.tsv"))
+  write_dat(mdh,fname = file.path(outdir, paste0(prefix,"mdh.tsv")))
 }
 
 #to test on a server
-read_gpu<-function(prefix){
-  res_gpu<-fread(paste0(prefix,"_madhyperesults.csv"))
-  res_gpu_b<-fread(paste0(prefix,"_bigmbs_names.tsv"),header=F)
-  res_gpu_a<-fread(paste0(prefix,"_bigmas_names.tsv"),header=F)
+read_gpu<-function(prefix, outdir=getwd()){
+  res_gpu<-fread(file.path(outdir, paste0(prefix,"_madhyperesults.csv")))
+  res_gpu_b<-fread(file.path(outdir, paste0(prefix,"_bigmbs_names.tsv")),header=F)
+  res_gpu_a<-fread(file.path(outdir, paste0(prefix,"_bigmas_names.tsv")),header=F)
   res_gpu[,alpha_nuc_seq:=res_gpu_a$V1[alpha_nuc],]
   res_gpu[,beta_nuc_seq:=res_gpu_b$V1[beta_nuc],]
   res_gpu[,alpha_nuc:=alpha_nuc_seq,]
@@ -116,11 +116,11 @@ read_gpu<-function(prefix){
   return(res_gpu)
 }
 
-read_gpu_corr<-function(prefix){
-  res_gpu<-fread(paste0(prefix,"_corresults.csv"))
-  res_gpu_b<-fread(paste0(prefix,"_bigmbs_names.tsv"),header=F)
-  res_gpu_a<-fread(paste0(prefix,"_bigmas_names.tsv"),header=F)
-  n_wells<-ncol(fread(paste0(prefix,"_bigmas.tsv"),header=F,nrows = 1))
+read_gpu_corr<-function(prefix, outdir=getwd()){
+  res_gpu<-fread(file.path(outdir, paste0(prefix,"_corresults.csv")))
+  res_gpu_b<-fread(file.path(outdir, paste0(prefix,"_bigmbs_names.tsv")),header=F)
+  res_gpu_a<-fread(file.path(outdir, paste0(prefix,"_bigmas_names.tsv")),header=F)
+  n_wells<-ncol(fread(file.path(outdir, paste0(prefix,"_bigmas.tsv")),header=F,nrows = 1))
   res_gpu[,alpha_nuc_seq:=res_gpu_a$V1[alpha_nuc],]
   res_gpu[,beta_nuc_seq:=res_gpu_b$V1[beta_nuc],]
   res_gpu[,alpha_nuc:=alpha_nuc_seq,]
@@ -222,6 +222,7 @@ write_dat<-function(x,fname,rows=F){
 }
 
 run_single_point_analysis_sub_gpu<-function(folder_path,
+                                            outdir=getwd(),
                                             prefix="tmp",
                                             well_filter_thres=0.5,
                                             min_reads=0,
@@ -281,26 +282,32 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   print(paste0("Unique beta clones and wells in more than: ",min_wells," wells"))
   print(dim(bigmbs))
   print("Writing files for back-end pairing script...")
-  write(rownames(bigmas),file=paste0(prefix,"_bigmas_names.tsv"))
-  write(rownames(bigmbs),file=paste0(prefix,"_bigmbs_names.tsv"))
-  write_dat(as.matrix(bigmas),fname = paste0(prefix,"_bigmas.tsv"))
-  write_dat(as.matrix(bigmbs),fname = paste0(prefix,"_bigmbs.tsv"))
+  write(rownames(bigmas),file=file.path(outdir, paste0(prefix,"_bigmas_names.tsv")))
+  write(rownames(bigmbs),file=file.path(outdir, paste0(prefix,"_bigmbs_names.tsv")))
+  write_dat(as.matrix(bigmas),fname = file.path(outdir, paste0(prefix,"_bigmas.tsv")))
+  write_dat(as.matrix(bigmbs),fname = file.path(outdir, paste0(prefix,"_bigmbs.tsv")))
   print(Sys.time())
   n_wells=ncol(bigmas)
   print("Pre-computing look-up table:")
   mdh<-madhyper_surface(n_wells = ncol(bigmas),cells = clone_thres,alpha=2,prior = 1/(as.numeric(nrow(bigmas))*(as.numeric(nrow(bigmbs))))**0.5)
-  write_dat(mdh,fname = paste0(prefix,"_mdh.tsv"))
+  cupy_cmd = paste("python3 cupy_backend_script.py",prefix,outdir)
+  print("Cupy:")
+  print(cupy_cmd)
+  write_dat(mdh,fname = file.path(outdir, (paste0(prefix,"_mdh.tsv"))))
   print(Sys.time())
+  cupy_cmd = paste("python3 cupy_backend_script.py",prefix,outdir)
+  print("Cupy:")
+  print(cupy_cmd)
   if(compute==T)
-    if(backend=="cupy")system(paste0("python3 cupy_backend_script.py ",prefix,collapse=""))
+    if(backend=="cupy")system(paste("python3 cupy_backend_script.py",prefix,outdir))
     else if(backend=="mlx")system(paste0("python3 mlx_backend_script.py ",prefix,collapse=""))
       else{system(paste0("python3 numpy_backend_script.py ",prefix,collapse=""))}
 
   print("Loading and filtering results, adding amino acid and V segment information")
   
     # and here we go read it: 
-  gpu_res<-read_gpu(prefix)
-  gpu_res_corr<-read_gpu_corr(prefix)
+  gpu_res<-read_gpu(prefix, outdir)
+  gpu_res_corr<-read_gpu_corr(prefix, outdir)
   # I also want to compute 
   result<-rbind(gpu_res,gpu_res_corr,fill=T)
 
@@ -334,7 +341,7 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   print(Sys.time())
   print("All is done! Number of paired clones:")
   print(table(result$method))
-  fwrite(result,paste0(prefix,"_TIRTLoutput.tsv"),sep="\t")    
+  fwrite(result,file.path(outdir, paste0(prefix,"_TIRTLoutput.tsv")),sep="\t")    
   return(result)
 }
 
