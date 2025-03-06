@@ -183,22 +183,29 @@ na_to0<-function (x) {
   x
 }
 
-run_longitudinal_analysis_sub<-function(folder1,folder2,well_pos1=3,well_pos2=3,well_filter_thres=0.75,wellset1=get_well_subset(1:16,1:24),wellset2=get_well_subset(1:16,1:24)) #full plates by default
+run_longitudinal_analysis_sub<-function(folder1,folder2,well_pos1=3,well_pos2=3,well_filter_thres=0.75,wellset1=get_well_subset(1:16,1:24),wellset2=get_well_subset(1:16,1:24),
+                                        idcol="filename") #full plates by default - idcol added as different versions of data.table have a different name fo rthis
 {
   print("start double timepoint analysis")
   print(Sys.time())
-  mlist1<-lapply(list.files(path = folder1,full.names = T),fread)
-  names(mlist1)<-list.files(path = folder1,full.names = F)
-  mlist1_b<-rbindlist(getb(mlist1),idcol="filename")
+
+  # here we update the file names to rpelace . with _, so wthe well positions will be found - similar to what is done in the pairing function
+  clone_files1 <- list.files(path = folder1,full.names = T)
+  mlist1<-lapply(clone_files1,fread)
+  names(mlist1)<-gsub(".","_",basename(clone_files1),fixed=T)
+
+  mlist1_b<-rbindlist(getb(mlist1),idcol=idcol)
   mlist1_b[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1),]
-  mlist1_a<-rbindlist(geta(mlist1),idcol="filename")
+  mlist1_a<-rbindlist(geta(mlist1),idcol=idcol)
   mlist1_a[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1),]
   
-  mlist2<-lapply(list.files(path = folder2,full.names = T),fread)
-  names(mlist2)<-list.files(path = folder2,full.names = F)
-  mlist2_b<-rbindlist(getb(mlist2),idcol="filename")
+  clone_files2 <- list.files(path = folder2,full.names = T)
+  mlist2<-lapply(clone_files2,fread)
+  names(mlist2)<-gsub(".","_",basename(clone_files2),fixed=T)
+  
+  mlist2_b<-rbindlist(getb(mlist2),idcol=idcol)
   mlist2_b[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2),]
-  mlist2_a<-rbindlist(geta(mlist2),idcol="filename")
+  mlist2_a<-rbindlist(geta(mlist2),idcol=idcol)
   mlist2_a[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2),]
   print("file read done")
   print(Sys.time())
@@ -290,19 +297,23 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   n_wells=ncol(bigmas)
   print("Pre-computing look-up table:")
   mdh<-madhyper_surface(n_wells = ncol(bigmas),cells = clone_thres,alpha=2,prior = 1/(as.numeric(nrow(bigmas))*(as.numeric(nrow(bigmbs))))**0.5)
-  cupy_cmd = paste("python3 cupy_backend_script.py",prefix,outdir)
-  print("Cupy:")
-  print(cupy_cmd)
   write_dat(mdh,fname = file.path(outdir, (paste0(prefix,"_mdh.tsv"))))
   print(Sys.time())
   cupy_cmd = paste("python3 cupy_backend_script.py",prefix,outdir)
-  print("Cupy:")
-  print(cupy_cmd)
-  if(compute==T)
-    if(backend=="cupy")system(paste("python3 cupy_backend_script.py",prefix,outdir))
-    else if(backend=="mlx")system(paste0("python3 mlx_backend_script.py ",prefix,collapse=""))
-      else{system(paste0("python3 numpy_backend_script.py ",prefix,collapse=""))}
-
+  mlx_cmd = paste("python3 mlx_backend_script.py",prefix,outdir)
+  numpy_cmd = paste("python3 numpy_backend_script.py",prefix,outdir)
+  if(compute==T) {
+    if(backend=="cupy") {
+      system(cupy_cmd)
+    }
+    else if (backend=="mlx") {
+      system(mlx_cmd)
+    }
+    else {
+      system(numpy_cmd)
+    }
+  }
+  
   print("Loading and filtering results, adding amino acid and V segment information")
   
     # and here we go read it: 
