@@ -19,11 +19,27 @@ run_single_point_analysis_sub_gpu(
 )
 }
 \arguments{
+\item{folder_path}{Path to the directory containing the clone files}
+
 \item{outdir}{Path where output should be saved}
 
 \item{prefix}{Prefix added to the output files}
 
-\item{foler_path}{Path to the directory containing the clone files}
+\item{well_filter_thres}{Clone frequency threshold for filtering wells}
+
+\item{min_reads}{Minimum reads needed to support a clone}
+
+\item{min_wells}{Minimum wells in which a clone is observed}
+
+\item{well_pos}{Position of the well ID in the fileanme when split by underscores (_)}
+
+\item{wellset1}{Vector of well IDs to analyze}
+
+\item{compute}{Run the python computation}
+
+\item{backend}{Python backend (numpy, cupy, mlx)}
+
+\item{file_pattern}{A pattern used to restrict the analyzed files in \code{folder_path}}
 }
 \value{
 Data frame with clone pairings and MAD-HYPE / TSHELL scores.

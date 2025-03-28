@@ -236,9 +236,17 @@ write_dat<-function(x,fname,rows=F){
 
 #' Run a chain pairing analysis
 #'
-#' @param foler_path Path to the directory containing the clone files
+#' @param folder_path Path to the directory containing the clone files
 #' @param outdir Path where output should be saved
 #' @param prefix Prefix added to the output files
+#' @param well_filter_thres Clone frequency threshold for filtering wells
+#' @param min_reads Minimum reads needed to support a clone
+#' @param min_wells Minimum wells in which a clone is observed
+#' @param well_pos Position of the well ID in the fileanme when split by underscores (_)
+#' @param wellset1 Vector of well IDs to analyze
+#' @param compute Run the python computation
+#' @param backend Python backend (numpy, cupy, mlx)
+#' @param file_pattern A pattern used to restrict the analyzed files in `folder_path`
 #'
 #' @return Data frame with clone pairings and MAD-HYPE / TSHELL scores.
 #' @export
