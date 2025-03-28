@@ -227,6 +227,14 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
+#' Run a chain pairing analysis
+#'
+#' @param foler_path Path to the directory containing the clone files
+#' @param outdir Path where output should be saved
+#' @param prefix Prefix added to the output files
+#'
+#' @return Data frame with clone pairings and MAD-HYPE / TSHELL scores.
+#' @export
 run_single_point_analysis_sub_gpu<-function(folder_path,
                                             outdir=getwd(),
                                             prefix="tmp",
