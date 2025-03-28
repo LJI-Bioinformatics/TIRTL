@@ -32,6 +32,13 @@ getb_sm<-function(dtlist){ #same, but smaller files!
   lapply(dtlist[grepl("TRB",names(dtlist))],function(x)x[,.(readCount,readFraction,targetSequences),])
 }
 
+#' Given a row and column range, return a vector that includes all wells in the range
+#'
+#' @param row_range Range of rows on the plate
+#' @param col_range Range of columns on the plate
+#'
+#' @return Vector of well IDs
+#' @export
 get_well_subset<-function(row_range=1:16,col_range=1:24){
   unlist(sapply(LETTERS[row_range],function(x)paste(x,col_range,sep=""),simplify = F))
 }
