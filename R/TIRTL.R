@@ -313,19 +313,19 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   mdh<-madhyper_surface(n_wells = ncol(bigmas),cells = clone_thres,alpha=2,prior = 1/(as.numeric(nrow(bigmas))*(as.numeric(nrow(bigmbs))))**0.5)
   write_dat(mdh,fname = file.path(outdir, (paste0(prefix,"_mdh.tsv"))))
   print(Sys.time())
-  cupy_cmd = paste("python3 python/cupy_backend_script.py",prefix,outdir)
-  mlx_cmd = paste("python3 python/mlx_backend_script.py",prefix,outdir)
-  numpy_cmd = paste("python3 python/numpy_backend_script.py",prefix,outdir)
+
   if(compute==T) {
-    if(backend=="cupy") {
-      system(cupy_cmd)
-    }
-    else if (backend=="mlx") {
-      system(mlx_cmd)
-    }
-    else {
-      system(numpy_cmd)
-    }
+      if(backend=="cupy") {
+          script_path <- system.file('python/cupy_backend_script.py', package='TIRTL')
+      } else if (backend=="mlx") {
+            script_path <- system.file('python/mlx_backend_script.py', package='TIRTL')
+      } else {
+            script_path <- system.file('python/numpy_backend_script.py', package='TIRTL')
+      }
+
+      system_cmd <- paste('python3',shQuote(script_path),prefix,outdir)
+      print(paste0("Executing: system_cmd"))
+      system(system_cmd)
   }
 
   print("Loading and filtering results, adding amino acid and V segment information")
