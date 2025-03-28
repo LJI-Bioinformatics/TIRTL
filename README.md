@@ -2,18 +2,16 @@
 Code for paired TCR data analysis from TIRTL-seq experiments. Please see the [preprint](https://www.biorxiv.org/content/10.1101/2024.09.16.613345v1) for details. Data for the manuscript is available at Zenodo [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14010377.svg)](https://doi.org/10.5281/zenodo.14010377).
 
 ## Installation
-### Requirements
+
+Install from Github with:
+```{r}
+devtools::install_github("LJI-Bioinformatics/TIRTL")
+```
+
+### Additional requirements
 
 For Nvidia GPU functionality you will need to have CUDA installed. You can install it from [here](https://developer.nvidia.com/cuda-downloads).
 For Apple Silicon GPU install Apple MLX library from [here](https://github.com/ml-explore/mlx).
-
-
-
-R dependencies are _Matrix_ (vesrsion >=1.5) and _data.table_ (v.>1.15) packages, available by default with most distributions. If not, you can install them by running from R console:
-```R
-install.packages("Matrix")
-install.packages("data.table")
-```
 
 Python3 dependencies are _numpy_ (v.>1.26), _pandas_ (v.>2.2), _cupy_ (v. >13.2 for Nvidia GPU runs, optional), _mlx_ (v. >=0.13 for Apple GPU runs, optional). You can install them by running:
 ```bash
@@ -22,13 +20,12 @@ pip install cupy
 pip install mlx
 ```
 
-If the dependencies are installed, just copying the repository is enough to run the code, no additional install or setup needed.
 The code was tested on macOS 14-15 (CPU/GPU), Red Hat Enterprise Linux 8.8 (CPU/Nvidia GPU) and Windows 11 Enterprise (tested on CPU only).
 
 ## Quick Start
-Install dependencies, download repository and run run the following commands in R:
+Install package and dependencies and run run the following commands in R:
 ```R
-source("TIRTL_functions.R")
+library(TIRTL)
 # to run on cpu
 test<-run_single_point_analysis_sub_gpu("data/")
 # to run on Nvidia gpu
@@ -114,7 +111,7 @@ _vb_ - beta V gene
 _jb_ - beta J gene
 
 ### Running on your own data
-To run the pipeline on your own data, you need to have TCRalpha and TCRbeta repertoires processed with _mixcr_ (v. >= 4.6) separate for each well. 
+To run the pipeline on your own data, you need to have TCRalpha and TCRbeta repertoires processed with _mixcr_ (version 4.6) separate for each well. 
 
 We use the following mixcr pipeline for each well: 
 ```bash
