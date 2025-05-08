@@ -189,6 +189,19 @@ na_to0<-function (x) {
   x
 }
 
+#' Given a row and column range, return a vector that includes all wells in the range
+#'
+#' @param folder1 Path to the first clones directory
+#' @param folder1 Path to the second clones directory
+#' @param well_pos1 Position of the well id within the name of the first set of clones files
+#' @param well_pos2 Position of the well id within the name of the second set of clones files
+#' @param well_filter_thres Threshold for well inclusion
+#' @param wellset1 Row and column range for the first well set
+#' @param wellset2 Row and column range for the second well set
+#' @param idcol Data frame column name to use as an identifier
+#'
+#' @return A list containing a data frame for each set of wells, denoted as a and b.
+#' @export
 run_longitudinal_analysis_sub<-function(folder1,folder2,well_pos1=3,well_pos2=3,well_filter_thres=0.75,wellset1=get_well_subset(1:16,1:24),wellset2=get_well_subset(1:16,1:24),
                                         idcol="filename") #full plates by default - idcol added as different versions of data.table have a different name fo rthis
 {
