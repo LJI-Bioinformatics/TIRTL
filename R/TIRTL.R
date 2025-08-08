@@ -267,6 +267,7 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
                                             outdir=getwd(),
                                             prefix="tmp",
                                             well_filter_thres=0.5,
+                                            padj_threshold=1e-10,
                                             min_reads=0,
                                             min_wells=2,
                                             well_pos=3,  # the position of the the well ID in the filename
@@ -375,7 +376,7 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   }
 
   #result<-result[order(-method),][!duplicated(alpha_beta),]#version without filter
-  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<1e-10&(loss_a_frac+loss_b_frac)<0.5),]
+  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<padj_threshold&(loss_a_frac+loss_b_frac)<0.5),]
 
   #result<-result[(((loss_a_frac+loss_b_frac)<0.5)&(wij>3))|(score>0.1),]
 
