@@ -303,6 +303,10 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   print("beta wells passing QC:")
   print(table(qc$b))
 
+  if (all(qc$a == FALSE) || all(qc$b == FALSE)) {
+    stop("No wells passed the quality control. Please check your input data and parameters.")
+  }
+
   mlista<-mlista[qc$a]#downsize to qc
   mlistb<-mlistb[qc$b]#downsize to qc
 
@@ -345,7 +349,7 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
       }
 
       system_cmd <- paste('python3',shQuote(script_path),prefix,outdir)
-      print(paste0("Executing: system_cmd"))
+      print(paste0("Executing: ", system_cmd))
       system(system_cmd)
   }
 
