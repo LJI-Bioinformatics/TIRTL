@@ -5,7 +5,7 @@ from datetime import datetime
 import sys
 import os
 
-def madhyper_process(outdir, prefix):
+def madhyper_process(prefix, outdir):
     print("start load:", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     bigmas = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmas.tsv'), delimiter='\t', dtype=np.float32))
     bigmbs = mx.array(np.loadtxt(os.path.join(outdir, prefix+'_bigmbs.tsv'), delimiter='\t', dtype=np.float32))
