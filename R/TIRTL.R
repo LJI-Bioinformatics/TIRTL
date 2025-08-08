@@ -253,6 +253,7 @@ write_dat<-function(x,fname,rows=F){
 #' @param outdir Path where output should be saved
 #' @param prefix Prefix added to the output files
 #' @param well_filter_thres Clone frequency threshold for filtering wells
+#' @param padj_threshold Adjusted p-value threshold for madhype
 #' @param min_reads Minimum reads needed to support a clone
 #' @param min_wells Minimum wells in which a clone is observed
 #' @param well_pos Position of the well ID in the fileanme when split by underscores (_)
