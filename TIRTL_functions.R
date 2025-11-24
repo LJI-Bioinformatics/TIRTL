@@ -221,7 +221,30 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
-run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter_thres=0.5,min_reads=0,min_wells=2,well_pos=3,wellset1=get_well_subset(1:16,1:24),compute=T,backend="numpy",pval_thres_tshell=1e-10,wij_thres_tshell=2){ #this is with cpu backend
+combineTCR<-function(dt){
+  dt[, v := tstrsplit(allVHitsWithScore, "*", fixed = TRUE, fill = "")[[1]]]
+  dt[, j := tstrsplit(allJHitsWithScore, "*", fixed = TRUE, fill = "")[[1]]]
+  setkey(dt, targetSequences)
+  nmax=length(unique(dt$file))
+  out <- dt[,
+            .(
+              readCount = sum(readCount),
+              v = v[which.max(tabulate(match(v, v)))],
+              j = j[which.max(tabulate(match(j, j)))],
+              aaSeqCDR3 = aaSeqCDR3[which.max(tabulate(match(aaSeqCDR3, aaSeqCDR3)))], 
+              n_wells=.N,
+              readCount_max=max(readCount),
+              readCount_median=median(readCount),
+              avg=sum(readFraction)/nmax,
+              sem=sd(c(readFraction,rep(0,times=nmax-.N)))/sqrt(nmax)
+            ),
+            by = targetSequences #or by EACHI?
+  ]
+  out[, readFraction := readCount / sum(readCount)]
+  out  
+}
+
+run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter_thres=0.5,min_reads=0,min_wells=2,well_pos=3,wellset1=get_well_subset(1:16,1:24),compute=T,backend="numpy",pval_thres_tshell=1e-10,wij_thres_tshell=2,pseudobulk=F){ #this is with cpu backend
   print("start")
   print(Sys.time())
   mlist<-lapply(list.files(path = folder_path,full.names = T),fread)
@@ -245,6 +268,21 @@ run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter
   
   mlista<-mlista[qc$a]#downsize to qc
   mlistb<-mlistb[qc$b]#downsize to qc
+  
+  if(pseudobulk){
+    print("Merging pseudobulk alpha...")
+    print(Sys.time())
+    combd_a<-combineTCR(rbindlist(mlista,idcol="file"))
+    combd_a$max_wells<-sum(qc$a)
+    print("Pseudobulk alpha done!")
+    fwrite(combd_a[order(-readCount),],paste0(prefix,"_pseudobulk_TRA.tsv"),sep="\t")
+    print("Merging pseudobulk alpha...")
+    print(Sys.time())
+    combd_b<-combineTCR(rbindlist(mlistb,idcol="file"))
+    combd_b$max_wells<-sum(qc$b)
+    fwrite(combd_b[order(-readCount),],paste0(prefix,"_pseudobulk_TRB.tsv"),sep="\t")
+    print("Pseudobulk beta done!")
+  }
   
   print(Sys.time())
   print("Merging alpha clonesets...")
