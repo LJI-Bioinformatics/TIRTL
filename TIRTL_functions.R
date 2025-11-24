@@ -221,7 +221,7 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
-run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter_thres=0.5,min_reads=0,min_wells=2,well_pos=3,wellset1=get_well_subset(1:16,1:24),compute=T,backend="numpy"){ #this is with cpu backend
+run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter_thres=0.5,min_reads=0,min_wells=2,well_pos=3,wellset1=get_well_subset(1:16,1:24),compute=T,backend="numpy",pval_thres_tshell=1e-10,wij_thres_tshell=2){ #this is with cpu backend
   print("start")
   print(Sys.time())
   mlist<-lapply(list.files(path = folder_path,full.names = T),fread)
@@ -301,8 +301,11 @@ run_single_point_analysis_sub_gpu<-function(folder_path,prefix="tmp",well_filter
   }
   
   #result<-result[order(-method),][!duplicated(alpha_beta),]#version without filter
-  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<1e-10&(loss_a_frac+loss_b_frac)<0.5),]
+#  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<1e-10&(loss_a_frac+loss_b_frac)<0.5),] #old filter
   
+  merged <- merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)
+  result <- merged[method=="madhype"|(`method`=="tshell"&`wij`>wij_thres_tshell&`pval_adj`<pval_thres_tshell&(`loss_a_frac`+`loss_b_frac`)<0.5),] #improved custom T-SHELL filter
+    
   #result<-result[(((loss_a_frac+loss_b_frac)<0.5)&(wij>3))|(score>0.1),]
   
   tp_a<-add_VJ_aa(result$alpha_nuc,rbindlist(mlista))

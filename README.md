@@ -66,6 +66,10 @@ _compute_ (default=T) - whether to run backend script for pairing. Only set F if
 
 _backend_ (default="numpy") - backend for the pairing. Can be "numpy" for CPU, "cupy" for Nvidia GPU, or "mlx" for Apple Silicon GPU.
 
+_wij_thres_tshell_ (default=2) - threshold for the number of wells with both alpha and beta chains for T-SHELL method. Increasing this number will increase the stringency of the pairing, but may also decrease the number of pairs found. Recommended value for 96-well experiments is 3.
+
+_pval_thres_tshell_ (default=1e-10) - p-value threshold for the T-SHELL method. Recommended value for 96-well experiments is 1e-3.
+
 ### Output for pairing pipeline
 This will take TCRalpha and TCRbeta repertoires from the folder "data/" and pair them using the default parameters. The output will be saved in the working directory under _tmp_TIRTLoutput.tsv_ and also returned to R as _data.table_.
 
