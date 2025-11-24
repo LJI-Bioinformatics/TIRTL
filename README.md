@@ -26,7 +26,7 @@ If the dependencies are installed, just copying the repository is enough to run 
 The code was tested on macOS 14-15 (CPU/GPU), Red Hat Enterprise Linux 8.8 (CPU/Nvidia GPU) and Windows 11 Enterprise (tested on CPU only).
 
 ## Quick Start
-Install dependencies, download repository and run run the following commands in R:
+Install dependencies, download repository and run the following commands in R:
 ```R
 source("TIRTL_functions.R")
 # to run on cpu
