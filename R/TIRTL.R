@@ -247,35 +247,63 @@ write_dat<-function(x,fname,rows=F){
   write.table(x,sep="\t",quote = F,row.names = rows,col.names=F,file = fname)
 }
 
+combineTCR<-function(dt){
+  dt[, v := tstrsplit(allVHitsWithScore, "*", fixed = TRUE, fill = "")[[1]]]
+  dt[, j := tstrsplit(allJHitsWithScore, "*", fixed = TRUE, fill = "")[[1]]]
+  setkey(dt, targetSequences)
+  nmax=length(unique(dt$file))
+  out <- dt[,
+            .(
+              readCount = sum(readCount),
+              v = v[which.max(tabulate(match(v, v)))],
+              j = j[which.max(tabulate(match(j, j)))],
+              aaSeqCDR3 = aaSeqCDR3[which.max(tabulate(match(aaSeqCDR3, aaSeqCDR3)))],
+              n_wells=.N,
+              readCount_max=max(readCount),
+              readCount_median=median(readCount),
+              avg=sum(readFraction)/nmax,
+              sem=sd(c(readFraction,rep(0,times=nmax-.N)))/sqrt(nmax)
+            ),
+            by = targetSequences #or by EACHI?
+  ]
+  out[, readFraction := readCount / sum(readCount)]
+  out
+}
+
 #' Run a chain pairing analysis
 #'
 #' @param folder_path Path to the directory containing the clone files
 #' @param outdir Path where output should be saved
 #' @param prefix Prefix added to the output files
 #' @param well_filter_thres Clone frequency threshold for filtering wells
-#' @param padj_threshold Adjusted p-value threshold for madhype
 #' @param min_reads Minimum reads needed to support a clone
 #' @param min_wells Minimum wells in which a clone is observed
 #' @param well_pos Position of the well ID in the fileanme when split by underscores (_)
 #' @param wellset1 Vector of well IDs to analyze
 #' @param compute Run the python computation
 #' @param backend Python backend (numpy, cupy, mlx)
+#' @param pval_thres_tshell Adjusted P-value threshold for tshell
+#' @param wij_thres_tshell Minimum co-occurrence threshold for tshell
+#' @param pseudobulk Generate pseudobulk files
 #' @param file_pattern A pattern used to restrict the analyzed files in `folder_path`
 #'
 #' @return Data frame with clone pairings and MAD-HYPE / TSHELL scores.
 #' @export
 run_single_point_analysis_sub_gpu<-function(folder_path,
-                                            outdir=getwd(),
+                                            outdir=getcwd(),
                                             prefix="tmp",
                                             well_filter_thres=0.5,
-                                            padj_threshold=1e-10,
                                             min_reads=0,
                                             min_wells=2,
                                             well_pos=3,  # the position of the the well ID in the filename
                                             wellset1=get_well_subset(1:16,1:24),
                                             compute=T,
                                             backend="numpy", #this is with cpu backend
+                                            pval_thres_tshell=1e-10,
+                                            wij_thres_tshell=2,
+                                            pseudobulk=F,
                                             file_pattern=NULL){  # the pattern to match the file names, if needed
+
   print("start")
   print(Sys.time())
   # get a list of clone files and read them in - if we need to filter the files in the
@@ -311,6 +339,21 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
 
   mlista<-mlista[qc$a]#downsize to qc
   mlistb<-mlistb[qc$b]#downsize to qc
+
+  if(pseudobulk){
+    print("Merging pseudobulk alpha...")
+    print(Sys.time())
+    combd_a<-combineTCR(rbindlist(mlista,idcol="file"))
+    combd_a$max_wells<-sum(qc$a)
+    print("Pseudobulk alpha done!")
+    fwrite(combd_a[order(-readCount),], file.path(outdir, paste0(prefix,"_pseudobulk_TRA.tsv")),sep="\t")
+    print("Merging pseudobulk alpha...")
+    print(Sys.time())
+    combd_b<-combineTCR(rbindlist(mlistb,idcol="file"))
+    combd_b$max_wells<-sum(qc$b)
+    fwrite(combd_b[order(-readCount),], file.path(outdir, paste0(prefix,"_pseudobulk_TRB.tsv")),sep="\t")
+    print("Pseudobulk beta done!")
+  }
 
   print(Sys.time())
   print("Merging alpha clonesets...")
@@ -377,7 +420,11 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   }
 
   #result<-result[order(-method),][!duplicated(alpha_beta),]#version without filter
-  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<padj_threshold&(loss_a_frac+loss_b_frac)<0.5),]
+
+#  result<-merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)[method=="madhype"|(method=="tshell"&wij>2&pval_adj<1e-10&(loss_a_frac+loss_b_frac)<0.5),] #old filter
+
+  merged <- merge(result, unique_combinations, by = c("wi", "wj", "wij"), all.x = TRUE)
+  result <- merged[method=="madhype"|(`method`=="tshell"&`wij`>wij_thres_tshell&`pval_adj`<pval_thres_tshell&(`loss_a_frac`+`loss_b_frac`)<0.5),] #improved custom T-SHELL filter
 
   #result<-result[(((loss_a_frac+loss_b_frac)<0.5)&(wij>3))|(score>0.1),]
 

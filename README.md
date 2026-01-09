@@ -1,5 +1,5 @@
 # TIRTL-seq data analysis pipeline
-Code for paired TCR data analysis from TIRTL-seq experiments. Please see the [preprint](https://www.biorxiv.org/content/10.1101/2024.09.16.613345v1) for details. Data for the manuscript is available at Zenodo [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14010377.svg)](https://doi.org/10.5281/zenodo.14010377).
+Code for paired TCR data analysis from TIRTL-seq experiments. Please see the [paper](https://www.nature.com/articles/s41592-025-02907-9) for details. Data for the manuscript is available at Zenodo [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14010377.svg)](https://doi.org/10.5281/zenodo.14010377). More functions for TIRTL-seq data analysis and visualization are available in actively developing [TIRTLtools](https://github.com/NicholasClark/TIRTLtools) R package.
 
 ## Installation
 
@@ -23,7 +23,9 @@ pip install mlx
 The code was tested on macOS 14-15 (CPU/GPU), Red Hat Enterprise Linux 8.8 (CPU/Nvidia GPU) and Windows 11 Enterprise (tested on CPU only).
 
 ## Quick Start
-Install package and dependencies and run run the following commands in R:
+
+Install dependencies, download repository and run the following commands in R:
+
 ```R
 library(TIRTL)
 # to run on cpu
@@ -62,6 +64,12 @@ _wellset1_ (default=get_well_subset(1:16,1:24)) - subset of wells to be analyzed
 _compute_ (default=T) - whether to run backend script for pairing. Only set F if you want to run the python backend script separately.
 
 _backend_ (default="numpy") - backend for the pairing. Can be "numpy" for CPU, "cupy" for Nvidia GPU, or "mlx" for Apple Silicon GPU.
+
+_wij_thres_tshell_ (default=2) - threshold for the number of wells with both alpha and beta chains for T-SHELL method. Increasing this number will increase the stringency of the pairing, but may also decrease the number of pairs found. Recommended value for 96-well experiments is 3.
+
+_pval_thres_tshell_ (default=1e-10) - p-value threshold for the T-SHELL method. Recommended value for 96-well experiments is 1e-3.
+
+_pseudobulk_ (default=F) - this option generates pseudobulk files, a single file containing all merged TCRalpha and TCRbeta singlechain data aggregated across wells. Resulting files are written out with _pseudobulk_TRA.tsv and _pseudobulk_TRB.tsv suffixes.
 
 ### Output for pairing pipeline
 This will take TCRalpha and TCRbeta repertoires from the folder "data/" and pair them using the default parameters. The output will be saved in the working directory under _tmp_TIRTLoutput.tsv_ and also returned to R as _data.table_.
