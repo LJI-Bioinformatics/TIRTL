@@ -43,9 +43,43 @@ get_well_subset<-function(row_range=1:16,col_range=1:24){
   unlist(sapply(LETTERS[row_range],function(x)paste(x,col_range,sep=""),simplify = F))
 }
 
+#' Normalize well IDs
+#'
+#' Converts well IDs to the form returned by [get_well_subset()]: an upper-case
+#' row letter followed by the column number without leading zeros, so `A01`,
+#' `a1` and `A1` all become `A1`. Values that do not look like a well ID are
+#' returned unchanged.
+#'
+#' @param x Character vector of well IDs
+#'
+#' @return Character vector of normalized well IDs
+#' @export
+normalize_well_id<-function(x){
+  sub("^([A-Za-z])0*([0-9]+)$","\\U\\1\\E\\2",x,perl=TRUE)
+}
+
+# Stops if distinct well IDs in the file names collapse to the same normalized
+# ID (e.g. both A1 and A01 are present), since the wells could not be told apart.
+check_well_id_collisions<-function(well_ids){
+  raw<-unique(well_ids)
+  norm<-normalize_well_id(raw)
+  dup<-unique(norm[duplicated(norm)])
+  if(length(dup)>0){
+    clashes<-vapply(dup,function(d)paste(raw[norm==d],collapse="/"),character(1))
+    stop("Well IDs in the file names map to the same well after normalization: ",
+         paste(clashes,collapse=", "))
+  }
+  invisible(NULL)
+}
+
 get_good_wells_sub<-function(alpha_list,beta_list,thres,pos=4,wellset=get_well_subset(1:16,1:24)){
   wellinds_a<-(sapply(strsplit(names(alpha_list),"_"),"[[",pos))
   wellinds_b<-(sapply(strsplit(names(beta_list),"_"),"[[",pos))
+  check_well_id_collisions(wellinds_a)
+  check_well_id_collisions(wellinds_b)
+  wellinds_a<-normalize_well_id(wellinds_a)
+  wellinds_b<-normalize_well_id(wellinds_b)
+  wellset<-normalize_well_id(wellset)
   good_wells<-intersect(wellinds_a[sapply(alpha_list,nrow)>thres],wellinds_b[sapply(beta_list,nrow)>thres])
   list(a=wellinds_a%in%intersect(good_wells,wellset),b=wellinds_b%in%intersect(good_wells,wellset),well_ids=intersect(good_wells,wellset))
 }
@@ -196,8 +230,8 @@ na_to0<-function (x) {
 #' @param well_pos1 Position of the well id within the name of the first set of clones files
 #' @param well_pos2 Position of the well id within the name of the second set of clones files
 #' @param well_filter_thres Threshold for well inclusion
-#' @param wellset1 Row and column range for the first well set
-#' @param wellset2 Row and column range for the second well set
+#' @param wellset1 Well IDs for the first well set (matched after [normalize_well_id()])
+#' @param wellset2 Well IDs for the second well set (matched after [normalize_well_id()])
 #' @param idcol Data frame column name to use as an identifier
 #'
 #' @return A list containing a data frame for each set of wells, denoted as a and b.
@@ -214,18 +248,18 @@ run_longitudinal_analysis_sub<-function(folder1,folder2,well_pos1=3,well_pos2=3,
   names(mlist1)<-gsub(".","_",basename(clone_files1),fixed=T)
 
   mlist1_b<-rbindlist(getb(mlist1),idcol=idcol)
-  mlist1_b[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1),]
+  mlist1_b[,well:=normalize_well_id(sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1)),]
   mlist1_a<-rbindlist(geta(mlist1),idcol=idcol)
-  mlist1_a[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1),]
+  mlist1_a[,well:=normalize_well_id(sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos1)),]
 
   clone_files2 <- list.files(path = folder2,full.names = T)
   mlist2<-lapply(clone_files2,fread)
   names(mlist2)<-gsub(".","_",basename(clone_files2),fixed=T)
 
   mlist2_b<-rbindlist(getb(mlist2),idcol=idcol)
-  mlist2_b[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2),]
+  mlist2_b[,well:=normalize_well_id(sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2)),]
   mlist2_a<-rbindlist(geta(mlist2),idcol=idcol)
-  mlist2_a[,well:=sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2),]
+  mlist2_a[,well:=normalize_well_id(sapply(strsplit(filename,split="_",fixed=T),"[[",well_pos2)),]
   print("file read done")
   print(Sys.time())
 
@@ -279,7 +313,7 @@ combineTCR<-function(dt){
 #' @param min_reads Minimum reads needed to support a clone
 #' @param min_wells Minimum wells in which a clone is observed
 #' @param well_pos Position of the well ID in the fileanme when split by underscores (_)
-#' @param wellset1 Vector of well IDs to analyze
+#' @param wellset1 Vector of well IDs to analyze. IDs are matched after [normalize_well_id()], so `A1` also selects files named with `A01`
 #' @param compute Run the python computation
 #' @param backend Python backend (numpy, cupy, mlx)
 #' @param pval_thres_tshell Adjusted P-value threshold for tshell
@@ -321,7 +355,21 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   print("clonesets loaded")
   print(Sys.time())
   print(names(mlista))
-  wellsub<-sapply(strsplit(names(mlista),split="_",fixed=T),"[[",well_pos)%in%wellset1
+  wells_a<-normalize_well_id(sapply(strsplit(names(mlista),split="_",fixed=T),"[[",well_pos))
+  wells_b<-normalize_well_id(sapply(strsplit(names(mlistb),split="_",fixed=T),"[[",well_pos))
+  requested<-unique(normalize_well_id(wellset1))
+  wellsub<-wells_a%in%requested
+  if(!any(wellsub)){
+    stop("None of the requested wells were found in the clone file names. ",
+         "Check well_pos (currently ",well_pos,") and wellset1.")
+  }
+  missing_wells<-setdiff(requested,intersect(wells_a,wells_b))
+  if(length(missing_wells)>0){
+    print(paste0("requested wells without alpha and beta clone files (",length(missing_wells),"):"))
+    print(missing_wells)
+    warning(length(missing_wells)," of ",length(requested),
+            " requested wells have no alpha and beta clone files in ",folder_path)
+  }
   clone_thres=round(well_filter_thres*mean(sapply(mlista,nrow)[wellsub]))
   rm(mlist)
 
@@ -332,6 +380,13 @@ run_single_point_analysis_sub_gpu<-function(folder_path,
   print(table(qc$a))
   print("beta wells passing QC:")
   print(table(qc$b))
+  print(paste0("wells used (",length(qc$well_ids)," of ",length(requested)," requested):"))
+  print(qc$well_ids)
+  failed_wells<-setdiff(intersect(requested,intersect(wells_a,wells_b)),qc$well_ids)
+  if(length(failed_wells)>0){
+    print(paste0("wells failing QC (",length(failed_wells),"):"))
+    print(failed_wells)
+  }
 
   if (all(qc$a == FALSE) || all(qc$b == FALSE)) {
     stop("No wells passed the quality control. Please check your input data and parameters.")

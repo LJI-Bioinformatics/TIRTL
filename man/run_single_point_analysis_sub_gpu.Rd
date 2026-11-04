@@ -6,7 +6,7 @@
 \usage{
 run_single_point_analysis_sub_gpu(
   folder_path,
-  outdir = getwd(),
+  outdir = getcwd(),
   prefix = "tmp",
   well_filter_thres = 0.5,
   min_reads = 0,
@@ -15,6 +15,9 @@ run_single_point_analysis_sub_gpu(
   wellset1 = get_well_subset(1:16, 1:24),
   compute = T,
   backend = "numpy",
+  pval_thres_tshell = 1e-10,
+  wij_thres_tshell = 2,
+  pseudobulk = F,
   file_pattern = NULL
 )
 }
@@ -33,11 +36,17 @@ run_single_point_analysis_sub_gpu(
 
 \item{well_pos}{Position of the well ID in the fileanme when split by underscores (_)}
 
-\item{wellset1}{Vector of well IDs to analyze}
+\item{wellset1}{Vector of well IDs to analyze. IDs are matched after \code{\link[=normalize_well_id]{normalize_well_id()}}, so \code{A1} also selects files named with \code{A01}}
 
 \item{compute}{Run the python computation}
 
 \item{backend}{Python backend (numpy, cupy, mlx)}
+
+\item{pval_thres_tshell}{Adjusted P-value threshold for tshell}
+
+\item{wij_thres_tshell}{Minimum co-occurrence threshold for tshell}
+
+\item{pseudobulk}{Generate pseudobulk files}
 
 \item{file_pattern}{A pattern used to restrict the analyzed files in \code{folder_path}}
 }
